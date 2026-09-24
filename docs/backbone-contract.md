@@ -58,7 +58,7 @@ The site's existing friend procedures (`src/server/api/routers/user/social/frien
 | `presence.deny.detail` | `detail` over 128 characters | — |
 | `presence.deny.batch` | more than 100 ids | — |
 
-And these are the client's own, never sent by the site: `friends.join.deny.notFriend`, `.offline`, `.notJoinable`, `.unsupported`.
+And these are the client's own, never sent by the site: `friends.join.deny.notFriend`, `.offline`, `.notJoinable`, `.unsupported`. The site carries their text anyway, in `locales/en/friends.json` under `join.deny`, so a game rendering refusals from the site's files through dot-locale finds them there; three of the four take a `{name}`, so pass it: `loc.explain(res.error, {"name": friend.display_name})`.
 
 ## What dot-friends duplicates on purpose
 
