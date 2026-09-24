@@ -2,7 +2,7 @@
 
 What dot-friends speaks. Every route is under `/api/app/v1`, authenticated by the player's app token (`Authorization: Bearer <AppToken>`), and in the app API's envelope: `{ ok: true, data }` or `{ ok: false, code, message, retryAfter? }` (`src/types/app-api/contract.ts`). For a refusal, `code` is an i18n key. Each route must allow `GAME` tokens, because that is the token a game holds.
 
-These routes were specified alongside this addon and were being written on the site at the same time. **When this was written, none of them was served yet**, so `DotFriendsBackendApp` turns a bare 404 into "the site has no app friends routes yet" rather than into a refusal.
+These routes were specified alongside this addon and were being written on the site at the same time. They are now implemented on website-city branch `feat/game-backbone` (not yet merged or deployed) and were driven from Godot against a live dev server: a request, the addressee seeing it as a `DotFriendRequest`, accepting, a presence post and the friend reading it as in game and joinable, and the keyed self-request refusal. Against a site without them, `DotFriendsBackendApp` turns a bare 404 into "the site has no app friends routes yet" rather than into a refusal.
 
 ## Routes
 
