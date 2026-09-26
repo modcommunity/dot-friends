@@ -16,7 +16,7 @@ extends Node
 ## [/codeblock]
 
 const SECTIONS := 9
-const CHECKS := 127
+const CHECKS := 128
 
 var _passed := 0
 var _failed := 0
@@ -566,6 +566,10 @@ func _test_app_backend() -> void:
 	answers.append(DotResult.failure(DotError.from_http(409, "{\"ok\":false,\"code\":\"friends.request.deny.pending\",\"message\":\"A request is already pending.\"}")))
 	var pending := await app.send_request("clx9")
 	_check(not pending.ok and pending.error.detail == "friends.request.deny.pending" and pending.error.http_status == 409, "so does one that arrives as a non-2xx with the envelope in its body")
+
+	answers.append(DotResult.success({"ok": false, "code": "token_expired", "message": "Sign in again."}))
+	var expired := await app.send_request("clx9")
+	_check(not expired.ok and expired.error.code == DotError.CODE_AUTH, "an expired token with no HTTP status is an auth failure, not a conflict")
 
 	answers.append(DotResult.failure(DotError.from_http(429, "{\"ok\":false,\"code\":\"rate_limited\",\"message\":\"Slow down.\",\"retryAfter\":12}")))
 	var slow := await app.post_presence({"status": "online"})

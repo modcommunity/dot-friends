@@ -257,7 +257,10 @@ func _refusal(env: Dictionary, status: int, fallback_code: String = DotError.COD
 	var code := fallback_code
 	if status == 0:
 		code = DotError.CODE_CONFLICT
-		if site_code == "unauthorized" or site_code == "wrong_credential":
+		# `token_expired` too: an expired token is the one refusal a client can fix by
+		# signing in again, and read as a conflict it was shown as a refusal to argue with.
+		if site_code == "unauthorized" or site_code == "wrong_credential" \
+				or site_code == "token_expired":
 			code = DotError.CODE_AUTH
 		elif site_code.begins_with("rate"):
 			code = DotError.CODE_RATE_LIMITED
