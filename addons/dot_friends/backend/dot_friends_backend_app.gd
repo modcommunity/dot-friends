@@ -46,6 +46,10 @@ var request_fn: Callable = Callable()
 ## per post while the site is down would bury the line that says when it went.
 var _failing: bool = false
 
+## Whether a bare 404 has said the site has no friends routes. Kept apart from
+## [member _failing] because it is not an outage and is not logged as one. See [method _call].
+var _no_routes: bool = false
+
 ## Codes the site uses to say no. Those are the rules working and are not the service failing.
 const _REFUSALS := [
 	DotError.CODE_CONFLICT, DotError.CODE_AUTH, DotError.CODE_RATE_LIMITED,
@@ -126,15 +130,22 @@ func describe() -> String:
 ## One request, unwrapped from the app API's envelope. Value: the envelope's [code]data[/code].
 ##
 ## Logged here because every call in this class passes through it. A refusal is DEBUG; the
-## service failing — the network, a 5xx, an answer that is not an envelope, a site with no
-## friends routes — is WARN when it starts, DEBUG while it lasts and INFO when a call
-## succeeds again. WARN rather than ERROR: a friends list is an extra on top of playing.
+## service failing — the network, a 5xx, an answer that is not an envelope — is WARN when it
+## starts, DEBUG while it lasts and INFO when a call succeeds again. WARN rather than ERROR:
+## a friends list is an extra on top of playing.
+##
+## [b]A site with no friends routes is ONE INFO line, and nothing more.[/b] It is not an
+## outage — it is the site as deployed today, and nothing anybody can fix from here — so a
+## WARN for it was a warning on every sign-in against every site without the routes, and a
+## caller that switches friends off for the session (dot-server-deploy's shell does, on the
+## first bare 404) logged its own line after it: two lines for one fact.
 func _call(method: String, path: String, body: Dictionary = {}, query: Dictionary = {}) -> DotResult:
 	var res := await _call_inner(method, path, body, query)
 
 	if res.ok:
-		if _failing:
+		if _failing or _no_routes:
 			_failing = false
+			_no_routes = false
 			DotLog.info(CHANNEL, "the friends service is answering again", {"api": api_base})
 		return res
 
@@ -145,7 +156,14 @@ func _call(method: String, path: String, body: Dictionary = {}, query: Dictionar
 		"site_code": res.error.detail if res.error != null else "",
 	}
 
-	if res.code() in _REFUSALS and not _is_missing_route(res):
+	if _is_missing_route(res):
+		if _no_routes:
+			DotLog.debug(CHANNEL, "the site still has no friends routes", fields)
+		else:
+			_no_routes = true
+			fields["api"] = api_base
+			DotLog.info(CHANNEL, "the site does not serve the friends routes yet; friends are unavailable", fields)
+	elif res.code() in _REFUSALS:
 		DotLog.debug(CHANNEL, "the friends service refused", fields)
 	elif _failing:
 		DotLog.debug(CHANNEL, "the friends service is still failing", fields)

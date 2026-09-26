@@ -69,6 +69,8 @@ The site's friend procedures throw English messages, not keys. The keys in the c
 
 **`DotResult.wrap` puts the cause in `detail`, which is where a refusal key lives.** Read in dot-party's app backend, not found by running: its 404 hint wraps the result, so `error.detail` becomes `"[invalid] Not found."`, and a caller that treats `detail` as an i18n key looks that up. Here the 404 hint clears `detail`, and the suite checks that a bare 404 "invents no key". dot-party was not changed; it is worth the same two lines there.
 
+**A site with no friends routes is one INFO line, not a WARN** (2026-09-25, found by the shell that switches friends off). A bare 404 is the site as deployed today rather than an outage, and was being routed into the outage branch on purpose — so every sign-in against a site without the routes logged `the friends service is failing` at WARN, and the shell then logged its own "off for this session" after it: two lines for one fact, one of them a warning nobody could act on. `_call` now says it once at INFO (`the site does not serve the friends routes yet`), then DEBUG, on a flag of its own (`_no_routes`) so a real outage later is still a WARN; a call that succeeds afterwards says "answering again" as it does after an outage. The suite counts the lines at INFO and above across three calls.
+
 **Every guard was armed.** Raising CHECKS by one exits 1; removing the debounce fails three checks and aborts section 6 part-way (an index past the end of the post list), which only the CHECKS total reports — "112 checks ran, 125 expected"; skipping `join`'s fresh presence fails three; diffing on `updatedAt` fails two; not collapsing a burst that returns to where it started fails eight. Each was put back and the suite re-run clean.
 
 **No native shadowing.** Every `func`, `var` and `signal` was compared against ClassDB's lists for `Node`, `RefCounted` and `Resource`; none collides. `connect_fn` is deliberately not `connect`, and the client has no `is_connected`.
@@ -91,4 +93,4 @@ done
 timeout 120 godot --headless --path . res://examples/friends_selftest.tscn
 ```
 
-9 sections, 125 checks, no network, nothing written to `user://`, and an empty stderr. **Sections 6 and 7 are the ones to keep**: 6 is a player staying online to their friends on a heartbeat inside the site's lifetime, with a burst of changes posted once; 7 is "join" taking somebody to their friend's party or server, or saying honestly why not.
+9 sections, 127 checks, no network, nothing written to `user://`, and an empty stderr. **Sections 6 and 7 are the ones to keep**: 6 is a player staying online to their friends on a heartbeat inside the site's lifetime, with a burst of changes posted once; 7 is "join" taking somebody to their friend's party or server, or saying honestly why not.

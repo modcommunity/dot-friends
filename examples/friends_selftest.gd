@@ -16,7 +16,7 @@ extends Node
 ## [/codeblock]
 
 const SECTIONS := 9
-const CHECKS := 125
+const CHECKS := 127
 
 var _passed := 0
 var _failed := 0
@@ -570,6 +570,26 @@ func _test_app_backend() -> void:
 	answers.append(DotResult.failure(DotError.from_http(429, "{\"ok\":false,\"code\":\"rate_limited\",\"message\":\"Slow down.\",\"retryAfter\":12}")))
 	var slow := await app.post_presence({"status": "online"})
 	_check(not slow.ok and slow.error.retry_after == 12.0 and slow.error.code == DotError.CODE_RATE_LIMITED, "a 429 keeps its retry-after")
+
+	# A site without the routes is one INFO line, not a WARN: it is the site as deployed, not
+	# an outage, and the shell that switches friends off on it says so itself. A fresh
+	# backend, because the 429 above has this one mid-outage already.
+	var said: Array = []
+	var listen := func(rec: Dictionary) -> void:
+		if str(rec.get("channel", "")) == DotFriendsBackendApp.CHANNEL and int(rec.get("level", 0)) >= DotLog.Level.INFO:
+			said.append(rec)
+	var was_level := DotLog.get_level()
+	DotLog.set_level(DotLog.Level.INFO)
+	DotLog.add_sink(listen)
+	var bare := DotFriendsBackendApp.new("https://tmc.example/api/app/v1")
+	bare.request_fn = func(_m: String, _p: String, _b: Dictionary) -> DotResult:
+		return DotResult.failure(DotError.from_http(404, ""))
+	for i in range(3):
+		var _r := await bare.friends()
+	DotLog.remove_sink(listen)
+	DotLog.set_level(was_level)
+	_check(said.size() == 1, "a site without the routes says so once, not once per call (%d lines)" % said.size())
+	_check(said.size() == 1 and int(said[0]["level"]) == DotLog.Level.INFO, "and at INFO: it is the site as deployed, not an outage")
 
 	answers.append(DotResult.failure(DotError.from_http(404, "")))
 	var missing := await app.friends()
