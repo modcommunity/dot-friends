@@ -16,7 +16,7 @@ extends Node
 ## [/codeblock]
 
 const SECTIONS := 9
-const CHECKS := 128
+const CHECKS := 134
 
 var _passed := 0
 var _failed := 0
@@ -185,6 +185,23 @@ func _test_requests() -> void:
 	var gone := bo.remove_friend("ada")
 	_check(not gone.ok and gone.error.detail == "friends.remove.deny.notFriends", "and ending one that does not exist is refused")
 	_check(ada.send_request("bo").ok, "after which a new request starts from nothing")
+
+	# Withdrawing. The site serves friends/cancel and the app uses it; this addon did not.
+	hub.set_accepting_requests("dee", true)
+	var to_dee := ada.send_request("dee")
+	var wid := int((to_dee.value as Dictionary)["id"]) if to_dee.ok else -1
+	var not_mine := hub.as_user("dee").cancel_request(wid)
+	_check(not not_mine.ok and not_mine.error.detail == "friends.cancel.deny.notFound", "only the sender can withdraw a request")
+	_check(ada.cancel_request(wid).ok, "the sender withdraws it")
+	var still_out: Array = []
+	for r: DotFriendRequest in (ada.requests().value as Dictionary)["outgoing"]:
+		still_out.append(r.id)
+	_check(((hub.as_user("dee").requests().value as Dictionary)["incoming"] as Array).is_empty()
+		and wid > 0 and not still_out.has(wid) and not still_out.is_empty(),
+		"and it is gone from both sides, leaving the sender's other requests (%s)" % str(still_out))
+	var twice_gone := ada.cancel_request(wid)
+	_check(not twice_gone.ok and twice_gone.error.detail == "friends.cancel.deny.notFound", "withdrawing it again is refused")
+	_check(ada.send_request("dee").ok, "and withdrawing leaves no cooldown: the sender may ask again at once")
 
 
 # --- 3 ----------------------------------------------------------------------
@@ -611,6 +628,11 @@ func _test_app_backend() -> void:
 	auth.answer = DotResult.failure(DotError.from_http(404, ""))
 	var auth_404 := await via_auth.friends()
 	_check(not auth_404.ok and auth_404.error.message.contains("no app friends routes yet"), "and a bare 404 through it gets the same hint")
+	auth.answer = DotResult.success(null)
+	var withdrawn := await via_auth.cancel_request(41)
+	_check(withdrawn.ok and auth.calls[3][0] == "POST" and auth.calls[3][1] == "friends/cancel"
+		and auth.calls[3][2] == {"requestId": 41} and (auth.calls[3][2] as Dictionary)["requestId"] is int,
+		"POST friends/cancel sends the request id as the integer the site gave")
 
 
 # --- 9 ----------------------------------------------------------------------

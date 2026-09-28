@@ -87,6 +87,10 @@ func respond(request_id: int, accept: bool) -> DotResult:
 	return await _call("POST", "friends/respond", {"requestId": request_id, "accept": accept})
 
 
+func cancel_request(request_id: int) -> DotResult:
+	return await _call("POST", "friends/cancel", {"requestId": request_id})
+
+
 func remove_friend(user_id: String) -> DotResult:
 	return await _call("POST", "friends/remove", {"userId": user_id})
 

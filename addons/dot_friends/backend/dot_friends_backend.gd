@@ -38,6 +38,12 @@ func respond(_request_id: int, _accept: bool) -> DotResult:
 	return _unsupported("respond")
 
 
+## Withdraws a pending request this player sent. [param request_id] is an
+## [code]outgoing[/code] request's id.
+func cancel_request(_request_id: int) -> DotResult:
+	return _unsupported("cancel_request")
+
+
 ## Ends a friendship, from either side.
 func remove_friend(_user_id: String) -> DotResult:
 	return _unsupported("remove_friend")

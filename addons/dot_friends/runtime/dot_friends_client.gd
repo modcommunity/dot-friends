@@ -393,6 +393,11 @@ func decline(request_id: int) -> DotResult:
 	return await _act("decline", &"respond", [request_id, false])
 
 
+## Withdraws a request this player sent (one of [code]outgoing[/code]'s ids).
+func cancel_request(request_id: int) -> DotResult:
+	return await _act("cancel_request", &"cancel_request", [request_id])
+
+
 func remove_friend(user_id: String) -> DotResult:
 	return await _act("remove_friend", &"remove_friend", [user_id])
 

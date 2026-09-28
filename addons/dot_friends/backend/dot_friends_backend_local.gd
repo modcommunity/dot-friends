@@ -35,6 +35,10 @@ func respond(request_id: int, accept: bool) -> DotResult:
 	return hub.respond(user_id, request_id, accept)
 
 
+func cancel_request(request_id: int) -> DotResult:
+	return hub.cancel_request(user_id, request_id)
+
+
 func remove_friend(target: String) -> DotResult:
 	return hub.remove_friend(user_id, target)
 

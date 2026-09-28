@@ -140,6 +140,18 @@ func respond(me: String, request_id: int, accept: bool) -> DotResult:
 	return DotResult.success(null)
 
 
+## Only the sender may withdraw, and only a pending request; anything else is "not found",
+## as an answer is. The row goes, so nothing is left to cool down: withdrawing is not
+## being declined, and the sender may ask again at once.
+func cancel_request(me: String, request_id: int) -> DotResult:
+	var row: Dictionary = _rows.get(request_id, {})
+	if row.is_empty() or str(row["from"]) != me or str(row["status"]) != "PENDING":
+		return _deny(DotError.CODE_INVALID, "Request not found.", "friends.cancel.deny.notFound")
+	_rows.erase(request_id)
+	DotLog.debug(CHANNEL, "friend request withdrawn", {"id": request_id})
+	return DotResult.success(null)
+
+
 func remove_friend(me: String, other: String) -> DotResult:
 	var row := _row_between(me, other)
 	if row.is_empty() or str(row["status"]) != "ACCEPTED":
