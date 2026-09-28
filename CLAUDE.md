@@ -59,6 +59,8 @@ The list is polled every 30 s. `join()` spends one `GET presence` on the one fri
 
 The site's friend procedures throw English messages, not keys. The keys in the contract's table are what the hub uses and what the app routes were asked to send; **they were not checked against shipped site code, because there was none yet**. When the routes land, compare the keys first.
 
+**Since landed.** The site's app routes now send refusal keys from its own `locales/en/friends.json` (`friends.request.deny.*`, `friends.respond.deny.notFound`, `friends.cancel.deny.notFound`, `friends.remove.deny.notFriends`), listed in website-city's `docs/api/app-social.md`; the hub's request, respond and remove keys match that table (the `friends.join.deny.*` keys are this addon's own, for `join()`).
+
 ## What building it found
 
 **The site's friend refusals are not keys.** Every refusal in `friend.ts` is a tRPC code with an English message. dot-party could check its keys against `locales/en/party.json`; here there was nothing to check against, so the keys are a proposal and the contract says so in its own table.
@@ -77,8 +79,9 @@ The site's friend procedures throw English messages, not keys. The keys in the c
 
 ## Things deliberately not here
 
-- **The site's routes.** Specified, not written; website-city is its own repository.
-- **Cancelling an outgoing request, blocking, friend search and suggestions.** The site has all four behind tRPC; none is in the app contract yet. A game that needs one adds a route to the contract first.
+- **The site's routes.** Not here: website-city is its own repository. They are written there (`/api/app/v1/friends*` and `presence`, documented in its `docs/api/app-social.md`) and merged to its `main`; deployment is the operator's.
+- **Cancelling an outgoing request.** The site now serves it (`POST friends/cancel`, refused as `friends.cancel.deny.notFound`); this addon has no method for it yet.
+- **Blocking, friend search and suggestions.** The site has all three behind tRPC; none is in the app contract yet. A game that needs one adds a route to the contract first.
 - **A friends UI.** dot-ui draws; this emits.
 - **Push.** The site pushes nothing to a game, so this polls. A socket would replace the poll in `DotFriendsClient` and nothing else.
 - **Turning a server id into an address.** A presence carries the site's server id; `connect_fn` is the game's, usually through dot-browser or the site's connect route.
