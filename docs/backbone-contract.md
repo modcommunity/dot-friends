@@ -2,7 +2,7 @@
 
 What dot-friends speaks. Every route is under `/api/app/v1`, authenticated by the player's app token (`Authorization: Bearer <AppToken>`), and in the app API's envelope: `{ ok: true, data }` or `{ ok: false, code, message, retryAfter? }` (`src/types/app-api/contract.ts`). For a refusal, `code` is an i18n key. Each route must allow `GAME` tokens, because that is the token a game holds.
 
-These routes were specified alongside this addon and were being written on the site at the same time. They are now implemented on website-city branch `feat/game-backbone` (not yet merged or deployed) and were driven from Godot against a live dev server: a request, the addressee seeing it as a `DotFriendRequest`, accepting, a presence post and the friend reading it as in game and joinable, and the keyed self-request refusal. Against a site without them, `DotFriendsBackendApp` turns a bare 404 into "the site has no app friends routes yet" rather than into a refusal.
+These routes were specified alongside this addon and are implemented on website-city, where `docs/api/app-social.md` documents them from the site's side; when the two disagree, that page and the site's code are the truth and this one changes. Against a site without them, `DotFriendsBackendApp` turns a bare 404 into "the site has no app friends routes yet" rather than into a refusal, and logs it once at INFO.
 
 ## Routes
 
@@ -12,6 +12,7 @@ These routes were specified alongside this addon and were being written on the s
 | `GET friends/requests` | — | `{ incoming: [Request], outgoing: [Request] }` | `requests`, polled every 60 s |
 | `POST friends/request` | `{ userId }` | `{ id }` | `send_request` |
 | `POST friends/respond` | `{ requestId, accept }` | `null` | `respond` |
+| `POST friends/cancel` | `{ requestId }` | `null` | `cancel_request`: the sender withdraws a pending request, leaving no cooldown |
 | `POST friends/remove` | `{ userId }` | `null` | `remove_friend` |
 | `POST presence` | `{ status, serverId?, partyId?, joinable?, detail? }` | `{ ttlSec }` | `post_presence`, on a heartbeat and on change |
 | `GET presence?userIds=a,b` | at most 100 ids, comma-separated | `{ [userId]: Presence }` | `fetch_presence`, before every join |
@@ -42,7 +43,7 @@ Request  = { id, userId, displayName, createdAt }
 
 ## Refusal keys
 
-The site's existing friend procedures (`src/server/api/routers/user/social/friend.ts`) throw tRPC codes with English messages, not keys. These are the keys `DotFriendsLocalHub` uses, proposed for the app routes. **If the site ships different ones, this table and the hub change together**, and so does the suite section that checks them.
+The site's tRPC friend procedures (`src/server/api/routers/user/social/friend.ts`) throw English messages; its app routes send these keys, from its `locales/en/friends.json`, and `DotFriendsLocalHub` uses the same ones. **If the site changes one, this table and the hub change together**, and so does the suite section that checks them.
 
 | Key | When | Site rule it mirrors |
 | --- | --- | --- |
@@ -53,6 +54,7 @@ The site's existing friend procedures (`src/server/api/routers/user/social/frien
 | `friends.request.deny.pending` | you already asked and they have not answered | `A request is already pending.` |
 | `friends.request.deny.cooldown` | they declined you less than seven days ago | `FRIEND_REREQUEST_COOLDOWN_MS` |
 | `friends.respond.deny.notFound` | not a pending request addressed to you | `Request not found.` |
+| `friends.cancel.deny.notFound` | not a pending request this player sent | — |
 | `friends.remove.deny.notFriends` | not friends | `You are not friends with this member.` |
 | `presence.deny.status` | not one of the four statuses | — |
 | `presence.deny.detail` | `detail` over 128 characters | — |
