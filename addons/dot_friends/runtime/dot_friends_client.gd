@@ -452,7 +452,12 @@ func join(friend_user_id: String) -> DotResult:
 	if p.server_id > 0 and connect_fn.is_valid():
 		var connected: Variant = await connect_fn.call(p.server_id, f)
 		if connected is DotResult and not (connected as DotResult).ok:
-			return connected
+			# Both ways refused: the connect's error, still carrying why the party said no.
+			# Returning only the connect's error lost the reason the long way was taken.
+			var failed := connected as DotResult
+			if party_error != null and failed.error != null:
+				failed.error.context["partyRefused"] = party_error
+			return failed
 		DotLog.info(CHANNEL, "followed a friend to their server", {"friend": f.user_id, "server": p.server_id})
 		var value := {"via": "server", "serverId": p.server_id}
 		if party_error != null:

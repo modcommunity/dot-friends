@@ -16,7 +16,7 @@ extends Node
 ## [/codeblock]
 
 const SECTIONS := 9
-const CHECKS := 134
+const CHECKS := 135
 
 var _passed := 0
 var _failed := 0
@@ -471,6 +471,21 @@ func _test_join() -> void:
 	var fallback := await client.join("bo")
 	_check(fallback.ok and fallback.value["via"] == "server" and server_calls == [[4821, "bo"]], "a party that refuses falls back to the friend's server")
 	_check((fallback.value["partyRefused"] as DotError).detail == "party.join.deny.full", "and says why it went the long way round")
+
+	var server_answer: Array = [DotResult.fail(DotError.CODE_NETWORK, "That server is full.", "server.full")]
+	client.connect_fn = func(sid: int, f: DotFriend) -> DotResult:
+		server_calls.append([sid, f.user_id])
+		return server_answer[0]
+	var both_refused := await client.join("bo")
+	_check(
+		not both_refused.ok and both_refused.error.detail == "server.full"
+			and both_refused.error.context.get("partyRefused") is DotError
+			and (both_refused.error.context["partyRefused"] as DotError).detail == "party.join.deny.full",
+		"refused both ways, the server's no still carries the party's"
+	)
+	client.connect_fn = func(sid: int, f: DotFriend) -> DotResult:
+		server_calls.append([sid, f.user_id])
+		return DotResult.success(null)
 
 	var server_only := await client.join("cy")
 	_check(server_only.ok and server_only.value["serverId"] == 7, "a friend on a server with no party is followed to the server")
