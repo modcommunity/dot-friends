@@ -21,7 +21,7 @@ const CHANNEL := "friends.app"
 ## What the site allows in one [code]GET presence[/code].
 const PRESENCE_BATCH_MAX := 100
 
-const _NO_ROUTES := "the site has no app friends routes yet; see dot-friends' docs/backbone-contract.md"
+const _NO_ROUTES := "this site has no app friends routes (an older or a different site); see dot-friends' docs/backbone-contract.md"
 
 ## Anything with [code]post_app(path, body)[/code] and [code]get_app(path, query)[/code]
 ## returning the envelope's data. Preferred over [member token_fn] when set.
@@ -182,7 +182,8 @@ func _call(method: String, path: String, body: Dictionary = {}, query: Dictionar
 ## A 404 with no site code is a site that has not grown the routes: an outage in all but
 ## name, and logged as one rather than as a refusal nobody reads at DEBUG.
 func _is_missing_route(res: DotResult) -> bool:
-	return res.error != null and res.error.http_status == 404 and res.error.message.contains("no app friends routes")
+	# A flag, not the message: matching the text broke the day the text changed.
+	return res.error != null and res.error.http_status == 404 and bool(res.error.context.get("missing_route", false))
 
 
 func _call_inner(method: String, path: String, body: Dictionary = {}, query: Dictionary = {}) -> DotResult:
@@ -252,6 +253,7 @@ func _explain(raw: DotResult) -> DotResult:
 func _hint_404(res: DotResult) -> DotResult:
 	var wrapped := res.wrap(_NO_ROUTES)
 	wrapped.error.detail = ""
+	wrapped.error.context["missing_route"] = true
 	return wrapped
 
 

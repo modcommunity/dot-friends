@@ -20,10 +20,9 @@ extends RefCounted
 ## then offline; a person who hides their activity is offline to everybody, with nothing
 ## else in the presence either; presence is only ever shown to friends.
 ##
-## [b]Refusal keys.[/b] The site's friend procedures throw tRPC codes with English
-## messages, not keys, so the keys here ([code]friends.request.deny.self[/code] and the
-## rest, listed in [code]docs/backbone-contract.md[/code]) are this addon's proposal for the
-## app routes. If the site ships different ones, the table and this file change together.
+## [b]Refusal keys.[/b] The keys here ([code]friends.request.deny.self[/code] and the rest,
+## listed in [code]docs/backbone-contract.md[/code]) are the ones the site's app routes send.
+## If the site changes one, the table and this file change together.
 
 const CHANNEL := "friends.local"
 

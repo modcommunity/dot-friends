@@ -629,7 +629,7 @@ func _test_app_backend() -> void:
 
 	answers.append(DotResult.failure(DotError.from_http(404, "")))
 	var missing := await app.friends()
-	_check(not missing.ok and missing.error.message.contains("no app friends routes yet") and missing.error.detail == "", "a bare 404 says the site has not grown the routes, and invents no key")
+	_check(not missing.ok and missing.error.message.contains("no app friends routes") and missing.error.detail == "", "a bare 404 says the site has not grown the routes, and invents no key")
 
 	var auth := FakeAuthClient.new()
 	var via_auth := DotFriendsBackendApp.new()
@@ -642,7 +642,7 @@ func _test_app_backend() -> void:
 	_check(not closed.ok and closed.error.detail == "friends.request.deny.closed" and auth.calls[1][2] == {"userId": "clx9"}, "and a refusal keeps the site's key")
 	auth.answer = DotResult.failure(DotError.from_http(404, ""))
 	var auth_404 := await via_auth.friends()
-	_check(not auth_404.ok and auth_404.error.message.contains("no app friends routes yet"), "and a bare 404 through it gets the same hint")
+	_check(not auth_404.ok and auth_404.error.message.contains("no app friends routes"), "and a bare 404 through it gets the same hint")
 	auth.answer = DotResult.success(null)
 	var withdrawn := await via_auth.cancel_request(41)
 	_check(withdrawn.ok and auth.calls[3][0] == "POST" and auth.calls[3][1] == "friends/cancel"
