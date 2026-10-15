@@ -88,6 +88,8 @@ var _since_post: float = 0.0
 var _dirty: bool = false
 var _dirty_at: float = 0.0
 var _posting: bool = false
+## Emitted when an in-flight presence post has returned, for go_offline() to queue behind.
+signal _post_finished
 var _posted_once: bool = false
 var _last_posted: Dictionary = {}
 var _ttl_sec: float = DotFriendsConfig.PRESENCE_TTL_SEC
@@ -204,8 +206,14 @@ func post_presence_now() -> DotResult:
 
 ## Posts "offline" at once. A game closing should await this: otherwise its friends see it
 ## online for up to two more minutes, and one of them tries to join.
+##
+## A post already in flight is waited for first. Sent alongside it, the two requests race
+## and the older "online" can land second, leaving the player online for a full lifetime
+## after they closed the game.
 func go_offline() -> DotResult:
 	status = DotPresence.Status.OFFLINE
+	if _posting:
+		await _post_finished
 	return await _post_presence()
 
 
@@ -230,6 +238,7 @@ func _post_presence() -> DotResult:
 	var res: DotResult = await backend.post_presence(body)
 	_posting = false
 	_since_post = 0.0
+	_post_finished.emit()
 	if not res.ok:
 		request_failed.emit("presence", res.error)
 		return res
@@ -444,10 +453,20 @@ func join(friend_user_id: String) -> DotResult:
 	var party_error: DotError = null
 	if p.party_id != "" and join_party_fn.is_valid():
 		var joined: Variant = await join_party_fn.call(p.party_id, f)
-		if not (joined is DotResult) or (joined as DotResult).ok:
+		# Anything but a DotResult is the game's callback breaking the contract (a lambda
+		# that returns nothing, a bool). Counting that as success reported a join that may
+		# never have happened and skipped the server fallback; it is an error instead.
+		if not (joined is DotResult):
+			party_error = DotError.make(
+				DotError.CODE_INVALID, "join_party_fn must return a DotResult.",
+				"friends.join.badPartyFn"
+			)
+			DotLog.warn(CHANNEL, "join_party_fn did not return a DotResult", {"friend": f.user_id})
+		elif (joined as DotResult).ok:
 			DotLog.info(CHANNEL, "joined a friend's party", {"friend": f.user_id, "party": p.party_id})
 			return DotResult.success({"via": "party", "partyId": p.party_id})
-		party_error = (joined as DotResult).error
+		else:
+			party_error = (joined as DotResult).error
 
 	if p.server_id > 0 and connect_fn.is_valid():
 		var connected: Variant = await connect_fn.call(p.server_id, f)

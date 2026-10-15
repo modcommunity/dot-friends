@@ -16,7 +16,7 @@ extends Node
 ## [/codeblock]
 
 const SECTIONS := 9
-const CHECKS := 135
+const CHECKS := 141
 
 var _passed := 0
 var _failed := 0
@@ -370,6 +370,19 @@ class CountingBackend:
 		return res
 
 
+class SlowBackend:
+	extends DotFriendsBackendLocal
+	signal release
+	var posts: Array = []
+	var landed: Array = []
+
+	func post_presence(body: Dictionary) -> DotResult:
+		posts.append(body.duplicate())
+		await release
+		landed.append(body["status"])
+		return hub.post_presence(user_id, body, app_id, app_name)
+
+
 func _test_presence_posting() -> void:
 	_section("Presence is posted on a heartbeat and once per burst of changes")
 
@@ -435,6 +448,34 @@ func _test_presence_posting() -> void:
 
 	client.queue_free()
 
+	# A post still in flight when the game quits.
+	var slow := SlowBackend.new()
+	slow.hub = hub
+	slow.user_id = "ada"
+	slow.app_id = 3
+	slow.app_name = "Arena"
+	var sc := _client(slow)
+	sc.config.presence_debounce_sec = 0.1
+	sc.advance(0.2)
+	_check(slow.posts.size() == 1, "an online post is in flight")
+	var offline_done: Array = [false]
+	var pending := func() -> void:
+		await sc.go_offline()
+		offline_done[0] = true
+	pending.call()
+	_check(slow.posts.size() == 1, "go_offline does not send alongside it")
+	slow.release.emit()
+	await get_tree().process_frame
+	_check(slow.posts.size() == 2 and slow.posts[1] == {"status": "offline"}, "it posts offline once the first has returned")
+	slow.release.emit()
+	await get_tree().process_frame
+	_check(
+		offline_done[0] and slow.landed == ["online", "offline"]
+			and not hub.as_user("bo").fetch_presence(PackedStringArray(["ada"])).value["ada"].is_online(),
+		"so offline lands last and the friend sees them gone"
+	)
+	sc.queue_free()
+
 
 # --- 7 ----------------------------------------------------------------------
 
@@ -486,6 +527,28 @@ func _test_join() -> void:
 	client.connect_fn = func(sid: int, f: DotFriend) -> DotResult:
 		server_calls.append([sid, f.user_id])
 		return DotResult.success(null)
+
+	# A callback that breaks the contract is an error, not a join that happened.
+	client.join_party_fn = func(_pid: String, _f: DotFriend) -> bool:
+		return true
+	var bad_fn := await client.join("bo")
+	_check(
+		bad_fn.ok and bad_fn.value["via"] == "server"
+			and (bad_fn.value["partyRefused"] as DotError).detail == "friends.join.badPartyFn",
+		"a join_party_fn that returns a bool is an error, and the server is tried"
+	)
+	var only_party := _client(ada_backend)
+	only_party.join_party_fn = client.join_party_fn
+	await only_party.refresh()
+	var bad_alone := await only_party.join("fay")
+	_check(
+		not bad_alone.ok and bad_alone.error.detail == "friends.join.badPartyFn",
+		"and with no server to fall back on it is refused, not reported joined"
+	)
+	only_party.queue_free()
+	client.join_party_fn = func(pid: String, f: DotFriend) -> DotResult:
+		party_calls.append([pid, f.user_id])
+		return party_answer[0]
 
 	var server_only := await client.join("cy")
 	_check(server_only.ok and server_only.value["serverId"] == 7, "a friend on a server with no party is followed to the server")
