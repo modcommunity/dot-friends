@@ -1,0 +1,17 @@
+# comments
+# Baselines only shrink: scripts/<gate> --update lowers or drops entries and refuses to add.
+addons/dot_friends/backend/dot_friends_backend.gd::long_block	2
+addons/dot_friends/backend/dot_friends_backend_app.gd::history	1
+addons/dot_friends/backend/dot_friends_backend_app.gd::long_block	3
+addons/dot_friends/backend/dot_friends_backend_local.gd::long_block	1
+addons/dot_friends/backend/dot_friends_local_hub.gd::banner	3
+addons/dot_friends/backend/dot_friends_local_hub.gd::long_block	1
+addons/dot_friends/core/dot_friend.gd::long_block	1
+addons/dot_friends/core/dot_friend_request.gd::long_block	1
+addons/dot_friends/core/dot_presence.gd::long_block	4
+addons/dot_friends/dot_friends_config.gd::long_block	1
+addons/dot_friends/dot_friends_plugin.gd::long_block	1
+addons/dot_friends/runtime/dot_friends_client.gd::banner	3
+addons/dot_friends/runtime/dot_friends_client.gd::long_block	4
+examples/friends_selftest.gd::banner	10
+examples/friends_selftest.gd::long_block	1

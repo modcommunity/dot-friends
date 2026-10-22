@@ -1,0 +1,6 @@
+# frame-hazards
+# Baselines only shrink: scripts/<gate> --update lowers or drops entries and refuses to add.
+addons/dot_friends/runtime/dot_friends_client.gd::apply_friends::alloc_array	1
+addons/dot_friends/runtime/dot_friends_client.gd::apply_friends::alloc_dict	2
+addons/dot_friends/runtime/dot_friends_client.gd::apply_requests::alloc_dict	1
+addons/dot_friends/runtime/dot_friends_client.gd::presence_body::alloc_dict	1

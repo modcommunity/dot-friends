@@ -1,0 +1,5 @@
+# size
+# Baselines only shrink: scripts/<gate> --update lowers or drops entries and refuses to add.
+examples/friends_selftest.gd::_test_app_backend	109
+examples/friends_selftest.gd::_test_join	111
+examples/friends_selftest.gd::_test_presence_posting	95
