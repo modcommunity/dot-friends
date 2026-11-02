@@ -448,7 +448,11 @@ func _test_presence_posting() -> void:
 
 	client.queue_free()
 
-	# A post still in flight when the game quits.
+	await _presence_in_flight(hub)
+
+
+## A post still in flight when the game quits.
+func _presence_in_flight(hub: DotFriendsLocalHub) -> void:
 	var slow := SlowBackend.new()
 	slow.hub = hub
 	slow.user_id = "ada"
@@ -553,6 +557,12 @@ func _test_join() -> void:
 	var server_only := await client.join("cy")
 	_check(server_only.ok and server_only.value["serverId"] == 7, "a friend on a server with no party is followed to the server")
 
+	await _join_refusals(client)
+
+	await _join_changed_since_poll(hub, ada_backend, client)
+
+
+func _join_refusals(client: DotFriendsClient) -> void:
 	var closed := await client.join("dee")
 	_check(not closed.ok and closed.error.detail == "friends.join.deny.notJoinable", "a friend who is not joinable is refused, with a key")
 	var asleep := await client.join("eve")
@@ -560,6 +570,8 @@ func _test_join() -> void:
 	var stranger := await client.join("zed")
 	_check(not stranger.ok and stranger.error.detail == "friends.join.deny.notFriend", "somebody not on the list is refused as not a friend")
 
+
+func _join_changed_since_poll(hub: DotFriendsLocalHub, ada_backend: DotFriendsBackend, client: DotFriendsClient) -> void:
 	var no_party_fn := _client(ada_backend)
 	await no_party_fn.refresh()
 	no_party_fn.connect_fn = client.connect_fn
@@ -670,6 +682,16 @@ func _test_app_backend() -> void:
 	var slow := await app.post_presence({"status": "online"})
 	_check(not slow.ok and slow.error.retry_after == 12.0 and slow.error.code == DotError.CODE_RATE_LIMITED, "a 429 keeps its retry-after")
 
+	await _app_backend_bare_404_logs_once()
+
+	answers.append(DotResult.failure(DotError.from_http(404, "")))
+	var missing := await app.friends()
+	_check(not missing.ok and missing.error.message.contains("no app friends routes") and missing.error.detail == "", "a bare 404 says the site has not grown the routes, and invents no key")
+
+	await _app_backend_through_auth()
+
+
+func _app_backend_bare_404_logs_once() -> void:
 	# A site without the routes is one INFO line, not a WARN: it is the site as deployed, not
 	# an outage, and the shell that switches friends off on it says so itself. A fresh
 	# backend, because the 429 above has this one mid-outage already.
@@ -690,10 +712,8 @@ func _test_app_backend() -> void:
 	_check(said.size() == 1, "a site without the routes says so once, not once per call (%d lines)" % said.size())
 	_check(said.size() == 1 and int(said[0]["level"]) == DotLog.Level.INFO, "and at INFO: it is the site as deployed, not an outage")
 
-	answers.append(DotResult.failure(DotError.from_http(404, "")))
-	var missing := await app.friends()
-	_check(not missing.ok and missing.error.message.contains("no app friends routes") and missing.error.detail == "", "a bare 404 says the site has not grown the routes, and invents no key")
 
+func _app_backend_through_auth() -> void:
 	var auth := FakeAuthClient.new()
 	var via_auth := DotFriendsBackendApp.new()
 	via_auth.client = auth
