@@ -2,7 +2,7 @@
 
 The player's friends list and presence, from the TMC backbone: who is online, in which game, on which server and in which party, whether they can be joined, and "join my friend", which hands off to the game's party or connect code without naming either.
 
-Read the family [CLAUDE.md](../../CLAUDE.md) first; this file is only what is specific to friends. Anything that talks to website-city: [game-dev/docs/backbone.md](../../docs/backbone.md).
+Read the family [CLAUDE.md](../../CLAUDE.md) first; this file is only what is specific to friends. Anything that talks to website-city: [docs/backbone.md](../../docs/backbone.md).
 
 **The distributable is `addons/dot_friends/`.** It requires [dot-core](../dot-core) and nothing else (`ln -s ../../dot-core/addons/dot_core addons/dot_core`, gitignored). dot-auth's client, dot-party's client and the game's connect function are reached by duck typing and never named.
 
@@ -32,7 +32,7 @@ Paths except `examples/` and `docs/` are in `addons/dot_friends/`.
 
 ## Running and testing
 
-The family's two steps ([game-dev/CLAUDE.md](../../CLAUDE.md#validating-anything)), then `timeout 120 godot --headless --path . res://examples/friends_selftest.tscn`; stderr should be empty. The sections to keep above all are the heartbeat one (a player stays online inside the site's lifetime, a burst of changes posted once) and the join one (their party, then their server, or an honest no).
+The family's two steps ([family CLAUDE.md](../../CLAUDE.md#validating-anything)), then `timeout 120 godot --headless --path . res://examples/friends_selftest.tscn`; stderr should be empty. The sections to keep above all are the heartbeat one (a player stays online inside the site's lifetime, a burst of changes posted once) and the join one (their party, then their server, or an honest no).
 
 ## Rules that bite
 
